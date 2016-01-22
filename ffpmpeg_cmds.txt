@@ -1,0 +1,6 @@
+http://stackoverflow.com/questions/33225026/creating-hls-variants-with-ffmpeg
+ffmpeg -i C:\Users\george\Desktop\video\hos.mp4 -strict -2 -acodec aac -vcodec libx264 -crf 25 C:\Users\user\Desktop\video\hos_Phone.m3u8
+
+
+http://stackoverflow.com/questions/29004197/webm-dash-encoding-what-are-the-correct-ffmpeg-parameters
+ffmpeg -f webm_dash_manifest -i video_160x90_25k_cued.webm -f webm_dash_manifest -i video_160x90_50k_cued.webm -f webm_dash_manifest -i audio_128k_cued.webm -c copy -map 0 -map 1 -map 2 -f webm_dash_manifest -adaptation_sets "id=0,streams=0,1 id=1,streams=2" manifest.mpd
