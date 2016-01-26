@@ -1,111 +1,150 @@
 package com.ott.transcode;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.ott.db.InMemoryDB;
-import com.ott.main.Starter;
+import com.ott.utils.ExceptionFreeProcess;
 import com.ott.utils.Keys;
-import com.ott.utils.TTYPE;
 
 public class Transcoder {
 	
-	TTYPE t;
-	
-	public Transcoder ( ) {
-		this.t = TTYPE.valueOf(InMemoryDB.getInstance().getKey(Keys.ttype));
-	}
-	// http://forum.videohelp.com/threads/277807-Useful-FFmpeg-Syntax-Examples
 	public void run() {
 		String fileName = InMemoryDB.getInstance().getKey(Keys.new_mezz_file);
 		String outputDir = InMemoryDB.getInstance().getKey(Keys.process_dir);
 		String ffMpegBinary = InMemoryDB.getInstance().getKey(Keys.ffMpeg_binary);
+		String mp4boxBinary = InMemoryDB.getInstance().getKey(Keys.mp4box_binary);
 		ProcessBuilder pb = null;
-		Process p;
-		String line = null;
-		try {
-			switch (t) {
-			case HLS: 	/*
-						./ffmpeg -v 9 -loglevel 99 -re -i sourcefile.avi -an \
-						-c:v libx264 -b:v 128k -vpre ipod320 \
-						-flags -global_header -map 0 -f segment -segment_time 4 \
-						-segment_list test.m3u8 -segment_format mpegts stream%05d.ts
-			 			*/
-						//(ffMpegBinary);
-						//(" -i "+fileName);
-						//(" -ab 64 ");
-						//(" -acodec mp3 ");
-						//-an diable audio
-						//(" -ar 44100 ");
-						//(" -aspect 16:9 ");
-						//(" -b 200 ");
-						//-deinterlace
-						//(" -f mpegts "); //h264 avi mov mp4 vob wav 
-						//-vcodec copy h264 mpeg2video xvid 
-						//(" -y "); // over write output files
-						//(" -hls_list_size 0");
-						//(outputDir+File.separator+"playlist.m3u8");
-						//System.out.println(ffMpegOptionsHLS.toString());
-						//pb = new ProcessBuilder(ffMpegOptionsHLS);
-						pb = new ProcessBuilder(ffMpegBinary,"-i",fileName,"-hls_list_size","0",outputDir+File.separator+"playlist.m3u8");
-						pb.directory(new File(InMemoryDB.getInstance().getKey(Keys.process_dir)));
-				break;
-			case SS:	pb = new ProcessBuilder("");
-				break;
-			case DASH:	pb = new ProcessBuilder("");
-				break;
-			default:
-				break;
+		// HLS
+		/**
+		 Single variant:
+		 ffmpeg -i source.mp4 -map 0 -codec:v libx264 -codec:a libfaac -f ssegment -segment_list playlist.m3u8 -segment_list_flags +live -segment_time 10 out%03d.ts
+		 
+		 Multi variant
+		 ffmpeg -y -i source.mp4 -threads 0 -f mpegts 
+				-acodec libfaac -ab 64k -ar 44100 -vcodec libx264 -vprofile baseline 
+			    -x264opts "fps=12:keyint=36:bitrate=200"  -s 416x234  bbb.mpegts/p1.ts 
+			  	-acodec libfaac -ab 64k -ar 44100 -vcodec libx264 -vprofile baseline 
+			    -x264opts "fps=12:keyint=36:bitrate=400"  -s 480x270  bbb.mpegts/p2.ts 
+			  	-acodec libfaac -ab 64k -ar 44100 -vcodec libx264 -vprofile baseline 
+			    -x264opts "fps=24:keyint=72:bitrate=600"  -s 640x360  bbb.mpegts/p3.ts 
+			  	-acodec libfaac -ab 64k -ar 44100 -vcodec libx264 -vprofile baseline 
+			    -x264opts "fps=24:keyint=72:bitrate=1200" -s 640x360  bbb.mpegts/p4.ts 
+			  	-acodec libfaac -ab 64k -ar 44100 -vcodec libx264 -vprofile main     
+			    -x264opts "fps=24:keyint=72:bitrate=1800" -s 960x540  bbb.mpegts/p5.ts 
+			  	-acodec libfaac -ab 64k -ar 44100 -vcodec libx264 -vprofile main     
+			    -x264opts "fps=24:keyint=72:bitrate=2500" -s 960x540  bbb.mpegts/p6.ts 
+			  	-acodec libfaac -ab 64k -ar 44100 -vcodec libx264 -vprofile main     
+			    -x264opts "fps=24:keyint=72:bitrate=4500" -s 1280x720 bbb.mpegts/p7.ts
+		 
+		 m3u8-segmenter --input ../bbb.mpegts/$p.ts --duration 6 --output-prefix $p.seg/$p --m3u8-file $p.m3u8 --url-prefix ""
+		 
+		 */
+		pb = new ProcessBuilder(ffMpegBinary,"-i",fileName,"-hls_list_size","0",outputDir+File.separator+"playlist.m3u8");
+		if (ExceptionFreeProcess.process(pb) == 0)
+				testffPlay(outputDir+File.separator+"playlist.m3u8");
+			
+		// SS
+		/**
+		 $ ffmpeg -y -i bunny.mov \
+			-an -vcodec libx264 -g 100 -keyint_min 100 \
+			-x264opts pic-struct:no-scenecut -movflags frag_keyframe \
+			-b 200k -s 320x240 \
+			bunny_200k.ismv
+			
+			$ ffmpeg -y -i bunny.mov \
+			-acodec libfaac -ac 2 -ab 64k \
+			-vcodec libx264 -g 100 -keyint_min 100 \
+			-x264opts pic-struct:no-scenecut -movflags frag_keyframe \
+			-b 400k -s 640x480 \
+			bunny_400k.ismv
+		 
+		 Audio demux and encoding:
+		 ffmpeg -analyzeduration 2147480000 -i bunny.mov -ar 48000 -ac 2 -y audio.wav 
+			neroAacEnc -cbr 128000 -lc -if audio.wav -of audio.mp4
+			 
+		 Video demux and encoding:
+		 ffmpeg -i bunny.mov -r 25 -s 854x480 -aspect 16:9 -f yuv4mpegpipe -pix_fmt yuv420p -vsync 1 -g 100 -keyint_min 100 -movflags frag_keyframe -y video.y4m
+			x264 --pass 1 --fps 25 --bitrate 2000 --no-scenecut --stats ./x264_2pass.log -o /dev/null video.y4m
+			x264 --pass 2 --fps 25 --bitrate 2000 --no-scenecut --stats ./x264_2pass.log -o video.h264 video.y4m
+			ffmpeg -i video.h264 -i audio.mp4 -vcodec copy -acodec copy -y bunny_2000.ismv
+			
+			ffmpeg -i bunny.mov -r 25 -s 480x272 -aspect 16:9 -f yuv4mpegpipe -pix_fmt yuv420p -vsync 1 -g 100 -keyint_min 100 -movflags frag_keyframe -y video.y4m
+			x264 --pass 1 --fps 25 --bitrate 894 --no-scenecut --stats ./x264_2pass.log -o /dev/null video.y4m
+			x264 --pass 2 --fps 25 --bitrate 894 --no-scenecut --stats ./x264_2pass.log -o video.h264 video.y4m
+			ffmpeg -i video.h264 -vcodec copy -y bunny_894.ismv
+			
+			ffmpeg -i bunny.mov -r 25 -s 288x160 -aspect 16:9 -f yuv4mpegpipe -pix_fmt yuv420p -vsync 1 -g 100 -keyint_min 100 -movflags frag_keyframe -y video.y4m
+			x264 --pass 1 --fps 25 --bitrate 400 --no-scenecut --stats ./x264_2pass.log -o /dev/null video.y4m
+			x264 --pass 2 --fps 25 --bitrate 400 --no-scenecut --stats ./x264_2pass.log -o video.h264 video.y4m
+			ffmpeg -i video.h264 -vcodec copy -y bunny_400.ismv
+		 
+		 manifest:
+		 ismindex -n bunny bunny_400.ismv bunny_894.ismv bunny_2000.ismv
+		 or
+		 mp4split -o bunny.ism bunny.ismv
+		 
+		 Splitting as static files
+		 ismindex -split bunny.ismv
+		 
+		 */
+		pb = new ProcessBuilder(ffMpegBinary,"-i",fileName,"-movflags","frag_keyframe",outputDir+File.separator+"playlist.ismv");
+		if (ExceptionFreeProcess.process(pb) == 0)
+			testffPlay(outputDir+File.separator+"playlist.ismv");
+		// DASH
+		/**
+		 Video Streams:
+
+			VP9_DASH_PARAMS="-tile-columns 4 -frame-parallel 1"
+			
+			ffmpeg -i input_video.y4m -c:v libvpx-vp9 -s 160x90 -b:v 250k -keyint_min 150 -g 150 ${VP9_DASH_PARAMS} -an -f webm -dash 1 video_160x90_250k.webm
+			
+			ffmpeg -i input_video.y4m -c:v libvpx-vp9 -s 320x180 -b:v 500k -keyint_min 150 -g 150 ${VP9_DASH_PARAMS} -an -f webm -dash 1 video_320x180_500k.webm
+			
+			ffmpeg -i input_video.y4m -c:v libvpx-vp9 -s 640x360 -b:v 750k -keyint_min 150 -g 150 ${VP9_DASH_PARAMS} -an -f webm -dash 1 video_640x360_750k.webm
+			
+			ffmpeg -i input_video.y4m -c:v libvpx-vp9 -s 640x360 -b:v 1000k -keyint_min 150 -g 150 ${VP9_DASH_PARAMS} -an -f webm -dash 1 video_640x360_1000k.webm
+			
+			ffmpeg -i input_video.y4m -c:v libvpx-vp9 -s 1280x720 -b:v 1500k -keyint_min 150 -g 150 ${VP9_DASH_PARAMS} -an -f webm -dash 1 video_1280x720_500k.webm
+		 Audio Stream:
+
+			ffmpeg -i input_audio.wav -c:a libvorbis -b:a 128k -vn -f webm -dash 1 audio_128k.webm
+		 
+		 Create the WebM DASH Manifest	
+		 
+		 	ffmpeg \
+			 -f webm_dash_manifest -i video_160x90_250k.webm \
+			 -f webm_dash_manifest -i video_320x180_500k.webm \
+			 -f webm_dash_manifest -i video_640x360_750k.webm \
+			 -f webm_dash_manifest -i video_640x360_1000k.webm \
+			 -f webm_dash_manifest -i video_1280x720_500k.webm \
+			 -f webm_dash_manifest -i audio_128k.webm \
+			 -c copy -map 0 -map 1 -map 2 -map 3 -map 4 -map 5 \
+			 -f webm_dash_manifest \
+			 -adaptation_sets "id=0,streams=0,1,2,3,4 id=1,streams=5" \
+			 manifest.mpd
+			 
+			 mp4box -dash 3000 -rap -profile dashavc264:onDemand out.mp4#audio out.mp4#video
+		 */
+		//pb = new ProcessBuilder(ffMpegBinary,"-i",fileName,"-c:v","libvpx","-keyint_min","150","-f","webm","-dash","1",outputDir+File.separator+"video.webm");
+		pb = new ProcessBuilder(ffMpegBinary,"-i",fileName,"-c:v","libx264",outputDir+File.separator+"playlist.mp4");
+		if (ExceptionFreeProcess.process(pb) == 0) {
+			
+			pb = new ProcessBuilder(mp4boxBinary,"-dash","3000","-rap","-profile","dashavc264:onDemand",outputDir+File.separator+"playlist.mp4");
+			if (ExceptionFreeProcess.process(pb) == 0) {
+				testOsmo(outputDir+File.separator+"playlist_dash.mpd");
 			}
-			pb.redirectErrorStream(true);
-			p = pb.start();
-			InputStream in = p.getInputStream();
-			InputStreamReader inr = new InputStreamReader(in);
-			BufferedReader reader = new BufferedReader(inr);
-			while ((line = reader.readLine ()) != null) {
-			    System.out.println ("Stdout: " + line);
-			}
-			int status = p.waitFor();
-			if (status == 0) {
-				System.out.println("Successful: " + status);
-				testPlay();
-			} else {
-				System.out.println("Failure: " + status);
-			}
-		} catch (IOException | InterruptedException e) {
-			e.printStackTrace();
 		}
 	}
 	
-	private static void testPlay() {
+	private static void testffPlay(String inputFile) {
 		System.out.println("Testing the newly encoded video by playing it using ffplay");
-		String outputDir = InMemoryDB.getInstance().getKey(Keys.process_dir);
-		ProcessBuilder pb = new ProcessBuilder("cmd.exe","/c","start",InMemoryDB.getInstance().getKey(Keys.ffplay_binary),"-i", outputDir+File.separator+"playlist.m3u8");
-		pb.directory(new File(InMemoryDB.getInstance().getKey(Keys.process_dir)));
-		Process p = null;
-		String line = null;
-		try {
-			p = pb.start();
-			InputStream in = p.getInputStream();
-			InputStreamReader inr = new InputStreamReader(in);
-			BufferedReader reader = new BufferedReader(inr);
-			while ((line = reader.readLine ()) != null) {
-			    System.out.println ("Stdout: " + line);
-			}
-			int status = p.waitFor();
-			if (status == 0) {
-				System.out.println("Successful: " + status);
-			} else {
-				System.out.println("Failure: " + status);
-			}
-		} catch (IOException | InterruptedException e) {
-			e.printStackTrace();
-		}
+		ProcessBuilder pb = new ProcessBuilder("cmd.exe","/c","start",InMemoryDB.getInstance().getKey(Keys.ffplay_binary),"-i", inputFile);
+		ExceptionFreeProcess.process(pb);
 	}
 	
+	private static void testOsmo(String inputFile) {
+		System.out.println("Testing the newly encoded video by playing it using ffplay");
+		ProcessBuilder pb = new ProcessBuilder("cmd.exe","/c","start",InMemoryDB.getInstance().getKey(Keys.osmo_binary), inputFile);
+		ExceptionFreeProcess.process(pb);
+	}
 }

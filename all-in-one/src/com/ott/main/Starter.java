@@ -38,13 +38,16 @@ public class Starter {
 	public static void init () {
 		System.out.println("Initializing the in memory DB");
 		InMemoryDB db = InMemoryDB.getInstance();
-		db.setKey(Keys.ffMpeg_binary, "D:\\video-engineering\\ffmpeg\\bin\\ffmpeg.exe");
-		db.setKey(Keys.ffplay_binary, "D:\\video-engineering\\ffmpeg\\bin\\ffplay.exe");
-		db.setKey(Keys.ffprobe_binary, "D:\\video-engineering\\ffmpeg\\bin\\ffprobe.exe");
-		db.setKey(Keys.drop_folder, "D:\\video-engineering\\drop_folder");
-		db.setKey(Keys.process_dir, "D:\\video-engineering\\process_dir");
-		db.setKey(Keys.resource_folder, "D:\\video-engineering\\resources");
-		db.setKey(Keys.ttype, "HLS");
+		db.setKey(Keys.ffMpeg_binary, "D:\\Dropbox\\github\\video-engineering\\ffmpeg\\bin\\ffmpeg.exe");
+		db.setKey(Keys.ffplay_binary, "D:\\Dropbox\\github\\video-engineering\\ffmpeg\\bin\\ffplay.exe");
+		db.setKey(Keys.ffprobe_binary, "D:\\Dropbox\\github\\video-engineering\\ffmpeg\\bin\\ffprobe.exe");
+		db.setKey(Keys.ismindex_binary, "D:\\Dropbox\\github\\video-engineering\\ffmpeg\\bin\\ismindex.exe");
+		db.setKey(Keys.mp4box_binary, "D:\\Dropbox\\github\\video-engineering\\GPAC\\mp4box.exe");
+		db.setKey(Keys.osmo_binary, "D:\\Dropbox\\github\\video-engineering\\GPAC\\mp4client.exe");
+		db.setKey(Keys.drop_folder, "D:\\Dropbox\\github\\video-engineering\\drop_folder");
+		db.setKey(Keys.process_dir, "D:\\Dropbox\\github\\video-engineering\\process_dir");
+		db.setKey(Keys.resource_folder, "D:\\Dropbox\\github\\video-engineering\\resources");
+		//db.setKey(Keys.ttype, "HLS");
 	}
 
 	public static void cleanup() {
@@ -67,7 +70,7 @@ public class Starter {
 	public static void test() {
 		System.out.println("Initiating the file drop test");
 		try {
-			Thread.sleep(5000);
+			Thread.sleep(1000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -9,4 +9,7 @@ public class Keys {
 	public static String resource_folder = "resource_folder";
 	public static String new_mezz_file="new_mezz_file";
 	public static String ttype="ttype";
+	public static String ismindex_binary = "ismindex_binary";
+	public static String mp4box_binary = "mp4box_binary";
+	public static String osmo_binary = "osmo_binary";
 }

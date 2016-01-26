@@ -4,10 +4,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 import com.ott.db.InMemoryDB;
+import com.sun.net.httpserver.HttpServer;
 
 public class TinyServer extends Thread {
 
@@ -48,5 +50,13 @@ public class TinyServer extends Thread {
 			}
 
 		}
+	}
+	
+	
+	public void httpServer() throws IOException {
+		HttpServer server = HttpServer.create(new InetSocketAddress(80), 0);
+		server.createContext("/video-engineering", new CustomHTTPHandler());
+        server.setExecutor(null); // creates a default executor
+        server.start();
 	}
 }
