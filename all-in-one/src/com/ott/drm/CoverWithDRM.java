@@ -23,11 +23,15 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.ott.db.InMemoryDB;
+import com.ott.utils.Keys;
+
 public class CoverWithDRM implements Runnable{
 	
 public static final int AES_Key_Size = 256;
 	
-	Cipher pkCipher, aesCipher;
+	Cipher rsaCipher; 
+	Cipher aesCipher;
 	byte[] aesKey;
 	SecretKeySpec aeskeySpec;
 	
@@ -35,13 +39,12 @@ public static final int AES_Key_Size = 256;
 	 * Constructor: creates ciphers
 	 */
 	public CoverWithDRM() {
-		// create RSA public key cipher
 		try {
-			pkCipher = Cipher.getInstance("RSA");
+			// create RSA public key cipher
+			rsaCipher = Cipher.getInstance("RSA");
 			 // create AES shared key cipher
 		    aesCipher = Cipher.getInstance("AES");
 		} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	   
@@ -69,12 +72,12 @@ public static final int AES_Key_Size = 256;
 		// create private key
 		PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(encodedKey);
 		KeyFactory kf = KeyFactory.getInstance("RSA");
-		PrivateKey pk = kf.generatePrivate(privateKeySpec);
+		PrivateKey privateKey = kf.generatePrivate(privateKeySpec);
 		
 		// read AES key
-		pkCipher.init(Cipher.DECRYPT_MODE, pk);
+		rsaCipher.init(Cipher.DECRYPT_MODE, privateKey);
 		aesKey = new byte[AES_Key_Size/8];
-		CipherInputStream is = new CipherInputStream(new FileInputStream(in), pkCipher);
+		CipherInputStream is = new CipherInputStream(new FileInputStream(in), rsaCipher);
 		is.read(aesKey);
 		aeskeySpec = new SecretKeySpec(aesKey, "AES");
 	}
@@ -90,11 +93,11 @@ public static final int AES_Key_Size = 256;
 		// create public key
 		X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(encodedKey);
 		KeyFactory kf = KeyFactory.getInstance("RSA");
-		PublicKey pk = kf.generatePublic(publicKeySpec);
+		PublicKey publicKey = kf.generatePublic(publicKeySpec);
 		
 		// write AES key
-		pkCipher.init(Cipher.ENCRYPT_MODE, pk);
-		CipherOutputStream os = new CipherOutputStream(new FileOutputStream(out), pkCipher);
+		rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey);
+		CipherOutputStream os = new CipherOutputStream(new FileOutputStream(out), rsaCipher);
 		os.write(aesKey);
 		os.close();
 	}
@@ -102,31 +105,14 @@ public static final int AES_Key_Size = 256;
 	/**
 	 * Encrypts and then copies the contents of a given file.
 	 */
-	public void encrypt(File in, File out) throws IOException, InvalidKeyException {
+	private void encrypt(File in, File out) throws IOException, InvalidKeyException {
 		aesCipher.init(Cipher.ENCRYPT_MODE, aeskeySpec);
-		
 		FileInputStream is = new FileInputStream(in);
 		CipherOutputStream os = new CipherOutputStream(new FileOutputStream(out), aesCipher);
-		
 		copy(is, os);
-		
 		os.close();
 	}
 	
-	/**
-	 * Decrypts and then copies the contents of a given file.
-	 */
-	public void decrypt(File in, File out) throws IOException, InvalidKeyException {
-		aesCipher.init(Cipher.DECRYPT_MODE, aeskeySpec);
-		
-		CipherInputStream is = new CipherInputStream(new FileInputStream(in), aesCipher);
-		FileOutputStream os = new FileOutputStream(out);
-		
-		copy(is, os);
-		
-		is.close();
-		os.close();
-	}
 	
 	/**
 	 * Copies a stream.
@@ -141,6 +127,24 @@ public static final int AES_Key_Size = 256;
 
 	@Override
 	public void run() {
-		
+		String clearFolderPath = InMemoryDB.getInstance().getKey(Keys.process_dir_clear);
+		String encryptedFolderPath = InMemoryDB.getInstance().getKey(Keys.process_dir_encrypted);
+		System.out.println(clearFolderPath);
+		File clearFolder = new File(clearFolderPath);
+		if (clearFolder.exists()) {
+			for (File inFile : clearFolder.listFiles()) {
+				File outFile = new File(encryptedFolderPath+File.separator+inFile.getName());
+				System.out.println("Un-encrypted file: "+ inFile.getAbsolutePath());
+				System.out.println("Encrypted file: "+ outFile.getAbsolutePath());
+				try {
+					if (!(inFile.getName().endsWith(Keys.HLS) || inFile.getName().endsWith(Keys.DASH) || inFile.getName().endsWith(Keys.SS)))
+						encrypt(inFile, outFile);
+				} catch (InvalidKeyException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 }

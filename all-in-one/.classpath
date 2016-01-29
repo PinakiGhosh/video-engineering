@@ -2,5 +2,9 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="D:/Dropbox/github/video-engineering/jmf-2.1.1e/lib/customizer.jar"/>
+	<classpathentry kind="lib" path="D:/Dropbox/github/video-engineering/jmf-2.1.1e/lib/jmf.jar"/>
+	<classpathentry kind="lib" path="D:/Dropbox/github/video-engineering/jmf-2.1.1e/lib/mediaplayer.jar"/>
+	<classpathentry kind="lib" path="D:/Dropbox/github/video-engineering/jmf-2.1.1e/lib/multiplayer.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

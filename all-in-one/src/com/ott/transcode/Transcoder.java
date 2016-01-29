@@ -10,7 +10,7 @@ public class Transcoder {
 	
 	public void run() {
 		String fileName = InMemoryDB.getInstance().getKey(Keys.new_mezz_file);
-		String outputDir = InMemoryDB.getInstance().getKey(Keys.process_dir);
+		String outputDir = InMemoryDB.getInstance().getKey(Keys.process_dir_clear);
 		String ffMpegBinary = InMemoryDB.getInstance().getKey(Keys.ffMpeg_binary);
 		String mp4boxBinary = InMemoryDB.getInstance().getKey(Keys.mp4box_binary);
 		ProcessBuilder pb = null;
@@ -39,13 +39,13 @@ public class Transcoder {
 		 m3u8-segmenter --input ../bbb.mpegts/$p.ts --duration 6 --output-prefix $p.seg/$p --m3u8-file $p.m3u8 --url-prefix ""
 		 
 		 */
-		pb = new ProcessBuilder(ffMpegBinary,"-i",fileName,"-hls_list_size","0",outputDir+File.separator+"playlist.m3u8");
+		pb = new ProcessBuilder(ffMpegBinary,"-i",fileName,"-hls_list_size","0",outputDir+File.separator+Keys.playlist+Keys.HLS); // "playlist.m3u8"
 		if (ExceptionFreeProcess.process(pb) == 0)
 				testffPlay(outputDir+File.separator+"playlist.m3u8");
 			
 		// SS
 		/**
-		 $ ffmpeg -y -i bunny.mov \
+		 	$ ffmpeg -y -i bunny.mov \
 			-an -vcodec libx264 -g 100 -keyint_min 100 \
 			-x264opts pic-struct:no-scenecut -movflags frag_keyframe \
 			-b 200k -s 320x240 \
@@ -87,7 +87,7 @@ public class Transcoder {
 		 ismindex -split bunny.ismv
 		 
 		 */
-		pb = new ProcessBuilder(ffMpegBinary,"-i",fileName,"-movflags","frag_keyframe",outputDir+File.separator+"playlist.ismv");
+		pb = new ProcessBuilder(ffMpegBinary,"-i",fileName,"-movflags","frag_keyframe",outputDir+File.separator+Keys.playlist+Keys.SS_binary); // "playlist.ismv"
 		if (ExceptionFreeProcess.process(pb) == 0)
 			testffPlay(outputDir+File.separator+"playlist.ismv");
 		// DASH
@@ -126,12 +126,12 @@ public class Transcoder {
 			 mp4box -dash 3000 -rap -profile dashavc264:onDemand out.mp4#audio out.mp4#video
 		 */
 		//pb = new ProcessBuilder(ffMpegBinary,"-i",fileName,"-c:v","libvpx","-keyint_min","150","-f","webm","-dash","1",outputDir+File.separator+"video.webm");
-		pb = new ProcessBuilder(ffMpegBinary,"-i",fileName,"-c:v","libx264",outputDir+File.separator+"playlist.mp4");
+		pb = new ProcessBuilder(ffMpegBinary,"-i",fileName,"-c:v","libx264",outputDir+File.separator+Keys.playlist+Keys.DASH_binary); //"playlist.mp4"
 		if (ExceptionFreeProcess.process(pb) == 0) {
 			
-			pb = new ProcessBuilder(mp4boxBinary,"-dash","3000","-rap","-profile","dashavc264:onDemand",outputDir+File.separator+"playlist.mp4");
+			pb = new ProcessBuilder(mp4boxBinary,"-dash","3000","-rap","-profile","dashavc264:onDemand",outputDir+File.separator+Keys.playlist+Keys.DASH_binary); //"playlist.mp4"
 			if (ExceptionFreeProcess.process(pb) == 0) {
-				testOsmo(outputDir+File.separator+"playlist_dash.mpd");
+				testOsmo(outputDir+File.separator+Keys.playlist+"_dash"+Keys.DASH); //"playlist_dash.mpd"
 			}
 		}
 	}

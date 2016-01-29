@@ -11,7 +11,7 @@ import com.ott.db.InMemoryDB;
 public class ExceptionFreeProcess {
 
 	public static int process(ProcessBuilder pb) {
-		pb.directory(new File(InMemoryDB.getInstance().getKey(Keys.process_dir)));
+		pb.directory(new File(InMemoryDB.getInstance().getKey(Keys.process_dir_clear)));
 		pb.redirectErrorStream(true);
 		Process p = null;
 		String line = null;

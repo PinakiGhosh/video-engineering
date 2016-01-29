@@ -19,7 +19,7 @@ public class Validator{
    			ffprobe -show_frames -print_format compact out.mp4 | less
 		 */
 		ProcessBuilder pb = new ProcessBuilder(InMemoryDB.getInstance().getKey(Keys.ffprobe_binary),"-v","error","-show_format","-show_streams", file);
-		pb.directory(new File(InMemoryDB.getInstance().getKey(Keys.process_dir)));
+		pb.directory(new File(InMemoryDB.getInstance().getKey(Keys.process_dir_clear)));
 		Process p = null;
 		String line = null;
 		try {

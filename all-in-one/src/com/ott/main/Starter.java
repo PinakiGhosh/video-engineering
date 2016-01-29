@@ -45,7 +45,8 @@ public class Starter {
 		db.setKey(Keys.mp4box_binary, "D:\\Dropbox\\github\\video-engineering\\GPAC\\mp4box.exe");
 		db.setKey(Keys.osmo_binary, "D:\\Dropbox\\github\\video-engineering\\GPAC\\mp4client.exe");
 		db.setKey(Keys.drop_folder, "D:\\Dropbox\\github\\video-engineering\\drop_folder");
-		db.setKey(Keys.process_dir, "D:\\Dropbox\\github\\video-engineering\\process_dir");
+		db.setKey(Keys.process_dir_clear, "D:\\Dropbox\\github\\video-engineering\\process_dir\\clear\\");
+		db.setKey(Keys.process_dir_encrypted, "D:\\Dropbox\\github\\video-engineering\\process_dir\\encrypted\\");
 		db.setKey(Keys.resource_folder, "D:\\Dropbox\\github\\video-engineering\\resources");
 		//db.setKey(Keys.ttype, "HLS");
 	}
@@ -59,7 +60,7 @@ public class Starter {
 			}
 		}
 		System.out.println("Cleaing the process folder contents");
-		File processFolder = new File(InMemoryDB.getInstance().getKey(Keys.process_dir));
+		File processFolder = new File(InMemoryDB.getInstance().getKey(Keys.process_dir_clear));
 		if (processFolder.exists()) {
 			for (File f : processFolder.listFiles()){
 				f.delete();

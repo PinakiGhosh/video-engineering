@@ -12,10 +12,11 @@ https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-20160124-git-1d8f9b7-win64
 
 #TODO
 ======
-live
 drm
-light weight http server
-transcode - variants
-unifed streaming
-HTML player to play all transcode and drm
+light weight java http server
+java player
 android app to show end to end demo
+live
+transcode - variants
+HTML player to play all transcode and drm
+unifed streaming
